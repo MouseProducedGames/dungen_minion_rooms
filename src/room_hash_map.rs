@@ -1,6 +1,9 @@
 // External includes.
-use super::{Portal, Portals, PortalsMut, Room, SubRoom, SubRooms, SubRoomsMut, TileType};
-use crate::geometry::{HasLocalPosition, HasSize, IntersectsLocalPos, LocalPosition, Shape, Size};
+use super::{
+    PlacedRoom, Portal, PortalCollection, Portals, PortalsMut, Room, SubRoom, SubRoomCollection,
+    SubRooms, SubRoomsMut, TileType,
+};
+use crate::geometry::*;
 
 // Standard includes.
 use std::collections::HashMap;
@@ -51,6 +54,24 @@ impl<'a> IntersectsLocalPos for RoomHashMap<'a> {
     }
 }
 
+impl<'a> PortalCollection<'a> for RoomHashMap<'a> {
+    fn add_portal(&mut self, local: LocalPosition, target: &'static dyn PlacedRoom<'a>) {
+        self.portals.push(Portal::new(local, target))
+    }
+
+    fn get_portal_at(&self, index: usize) -> Option<&Portal<'a>> {
+        self.portals.get(index)
+    }
+
+    fn get_portal_at_mut(&mut self, index: usize) -> Option<&mut Portal<'a>> {
+        self.portals.get_mut(index)
+    }
+
+    fn portal_count(&self) -> usize {
+        self.portals.len()
+    }
+}
+
 impl<'a> Room<'a> for RoomHashMap<'a> {
     fn portals(&'a self) -> Portals<'a> {
         Portals::new(&self.portals)
@@ -80,14 +101,32 @@ impl<'a> Room<'a> for RoomHashMap<'a> {
         pos: LocalPosition,
         tile_type: TileType,
     ) -> Option<TileType> {
-        *self.size.height_mut() = self.size.height().max(pos.y() + 1);
-        *self.size.width_mut() = self.size.width().max(pos.x() + 1);
+        *self.size_mut().height_mut() = self.size.height().max(pos.y() + 1);
+        *self.size_mut().width_mut() = self.size.width().max(pos.x() + 1);
 
         self.tiles.insert(pos, tile_type)
     }
 }
 
 impl<'a> Shape for RoomHashMap<'a> {}
+
+impl<'a> SubRoomCollection<'a> for RoomHashMap<'a> {
+    fn add_sub_room(&mut self, local: LocalPosition, target: &'static dyn Room<'a>) {
+        self.sub_rooms.push(SubRoom::new(local, target))
+    }
+
+    fn get_sub_room_at(&self, index: usize) -> Option<&SubRoom<'a>> {
+        self.sub_rooms.get(index)
+    }
+
+    fn get_sub_room_at_mut(&mut self, index: usize) -> Option<&mut SubRoom<'a>> {
+        self.sub_rooms.get_mut(index)
+    }
+
+    fn sub_room_count(&self) -> usize {
+        self.sub_rooms.len()
+    }
+}
 
 impl<'a> HasSize for RoomHashMap<'a> {
     fn size(&self) -> &Size {
