@@ -80,8 +80,8 @@ impl<'a> Room<'a> for RoomHashMap<'a> {
         pos: LocalPosition,
         tile_type: TileType,
     ) -> Option<TileType> {
-        *self.size.height_mut() = self.size.height().max(pos.y());
-        *self.size.width_mut() = self.size.width().max(pos.x());
+        *self.size.height_mut() = self.size.height().max(pos.y() + 1);
+        *self.size.width_mut() = self.size.width().max(pos.x() + 1);
 
         self.tiles.insert(pos, tile_type)
     }
