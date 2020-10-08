@@ -1,11 +1,10 @@
 // External includes.
+pub use dungen_minion_rooms_abstract::*;
 
 // Standard includes.
 
 // Internal includes.
 mod room_hash_map;
-
-pub use generic_dungen_rooms_abstract::*;
 
 pub use room_hash_map::RoomHashMap;
 
