@@ -1,7 +1,7 @@
 // External includes.
 use generic_dungen_traits::{
-    HasLocalPosition, IntersectsLocalPos, Length, LocalPosition, Portal, Portals, PortalsMut, Room,
-    Shape, Size, SubRoom, SubRooms, SubRoomsMut, TileType,
+    HasLocalPosition, HasSize, IntersectsLocalPos, LocalPosition, Portal, Portals, PortalsMut,
+    Room, Shape, Size, SubRoom, SubRooms, SubRoomsMut, TileType,
 };
 
 // Standard includes.
@@ -9,10 +9,10 @@ use std::collections::HashMap;
 
 // Internal includes.
 
+#[derive(Clone)]
 pub struct RoomHashMap<'a> {
     local: LocalPosition,
-    height: Length,
-    width: Length,
+    size: Size,
     tiles: HashMap<LocalPosition, TileType>,
     portals: Vec<Portal<'a>>,
     sub_rooms: Vec<SubRoom<'a>>,
@@ -63,8 +63,8 @@ impl<'a> Room<'a> for RoomHashMap<'a> {
         pos: LocalPosition,
         tile_type: TileType,
     ) -> Option<TileType> {
-        self.height = self.height.max(pos.x());
-        self.width = self.width.max(pos.x());
+        *self.size.height_mut() = self.size.height().max(pos.x());
+        *self.size.width_mut() = self.size.width().max(pos.x());
 
         self.tiles.insert(pos, tile_type)
     }
@@ -72,12 +72,12 @@ impl<'a> Room<'a> for RoomHashMap<'a> {
 
 impl<'a> Shape for RoomHashMap<'a> {}
 
-impl<'a> Size for RoomHashMap<'a> {
-    fn height(&self) -> Length {
-        self.height
+impl<'a> HasSize for RoomHashMap<'a> {
+    fn size(&self) -> &Size {
+        &self.size
     }
 
-    fn width(&self) -> Length {
-        self.width
+    fn size_mut(&mut self) -> &mut Size {
+        &mut self.size
     }
 }
