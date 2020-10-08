@@ -6,6 +6,7 @@ use generic_dungen_traits::{
 
 // Standard includes.
 use std::collections::HashMap;
+use std::default::Default;
 
 // Internal includes.
 
@@ -16,6 +17,24 @@ pub struct RoomHashMap<'a> {
     tiles: HashMap<LocalPosition, TileType>,
     portals: Vec<Portal<'a>>,
     sub_rooms: Vec<SubRoom<'a>>,
+}
+
+impl<'a> RoomHashMap<'a> {
+    pub fn new() -> Self {
+        Self {
+            local: LocalPosition::new(0, 0),
+            size: Size::new(0, 0),
+            tiles: HashMap::new(),
+            portals: Vec::new(),
+            sub_rooms: Vec::new(),
+        }
+    }
+}
+
+impl<'a> Default for RoomHashMap<'a> {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl<'a> HasLocalPosition for RoomHashMap<'a> {
@@ -63,7 +82,7 @@ impl<'a> Room<'a> for RoomHashMap<'a> {
         pos: LocalPosition,
         tile_type: TileType,
     ) -> Option<TileType> {
-        *self.size.height_mut() = self.size.height().max(pos.x());
+        *self.size.height_mut() = self.size.height().max(pos.y());
         *self.size.width_mut() = self.size.width().max(pos.x());
 
         self.tiles.insert(pos, tile_type)
