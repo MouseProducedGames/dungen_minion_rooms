@@ -1,8 +1,6 @@
 // External includes.
-use generic_dungen_traits::{
-    HasLocalPosition, HasSize, IntersectsLocalPos, LocalPosition, Portal, Portals, PortalsMut,
-    Room, Shape, Size, SubRoom, SubRooms, SubRoomsMut, TileType,
-};
+use super::{Portal, Portals, PortalsMut, Room, SubRoom, SubRooms, SubRoomsMut, TileType};
+use crate::geometry::{HasLocalPosition, HasSize, IntersectsLocalPos, LocalPosition, Shape, Size};
 
 // Standard includes.
 use std::collections::HashMap;
