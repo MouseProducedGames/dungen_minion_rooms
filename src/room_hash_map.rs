@@ -55,8 +55,14 @@ impl IntersectsLocalPos for RoomHashMap {
 }
 
 impl PortalCollection for RoomHashMap {
-    fn add_portal(&mut self, local: LocalPosition, target: Box<dyn PlacedRoom>) {
-        self.portals.push(Portal::new(local, target))
+    fn add_portal(
+        &mut self,
+        local: LocalPosition,
+        portal_to_room_facing: OrdinalDirection,
+        target: Box<dyn PlacedRoom>,
+    ) {
+        self.portals
+            .push(Portal::new(local, portal_to_room_facing, target))
     }
 
     fn get_portal_at(&self, index: usize) -> Option<&Portal> {
@@ -76,8 +82,8 @@ impl Room for RoomHashMap {
     fn box_clone(&self) -> Box<dyn Room> {
         Box::new((*self).clone())
     }
-    
-    fn portals(& self) -> Portals {
+
+    fn portals(&self) -> Portals {
         Portals::new(&self.portals)
     }
     fn portals_mut(&mut self) -> PortalsMut {
@@ -88,7 +94,7 @@ impl Room for RoomHashMap {
         SubRooms::new(&self.sub_rooms)
     }
 
-    fn sub_rooms_mut(& mut self) -> SubRoomsMut {
+    fn sub_rooms_mut(&mut self) -> SubRoomsMut {
         SubRoomsMut::new(&mut self.sub_rooms)
     }
 
