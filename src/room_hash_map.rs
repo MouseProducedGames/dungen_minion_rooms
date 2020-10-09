@@ -12,15 +12,15 @@ use std::default::Default;
 // Internal includes.
 
 #[derive(Clone)]
-pub struct RoomHashMap<'a> {
+pub struct RoomHashMap {
     local: LocalPosition,
     size: Size,
     tiles: HashMap<LocalPosition, TileType>,
-    portals: Vec<Portal<'a>>,
-    sub_rooms: Vec<SubRoom<'a>>,
+    portals: Vec<Portal>,
+    sub_rooms: Vec<SubRoom>,
 }
 
-impl<'a> RoomHashMap<'a> {
+impl RoomHashMap {
     pub fn new() -> Self {
         Self {
             local: LocalPosition::new(0, 0),
@@ -32,13 +32,13 @@ impl<'a> RoomHashMap<'a> {
     }
 }
 
-impl<'a> Default for RoomHashMap<'a> {
+impl Default for RoomHashMap {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<'a> HasLocalPosition for RoomHashMap<'a> {
+impl HasLocalPosition for RoomHashMap {
     fn local(&self) -> &LocalPosition {
         &self.local
     }
@@ -48,22 +48,22 @@ impl<'a> HasLocalPosition for RoomHashMap<'a> {
     }
 }
 
-impl<'a> IntersectsLocalPos for RoomHashMap<'a> {
+impl IntersectsLocalPos for RoomHashMap {
     fn intersects_local_pos(&self, pos: LocalPosition) -> bool {
         self.tiles.contains_key(&pos)
     }
 }
 
-impl<'a> PortalCollection<'a> for RoomHashMap<'a> {
-    fn add_portal(&mut self, local: LocalPosition, target: &'static dyn PlacedRoom<'a>) {
+impl PortalCollection for RoomHashMap {
+    fn add_portal(&mut self, local: LocalPosition, target: Box<dyn PlacedRoom>) {
         self.portals.push(Portal::new(local, target))
     }
 
-    fn get_portal_at(&self, index: usize) -> Option<&Portal<'a>> {
+    fn get_portal_at(&self, index: usize) -> Option<&Portal> {
         self.portals.get(index)
     }
 
-    fn get_portal_at_mut(&mut self, index: usize) -> Option<&mut Portal<'a>> {
+    fn get_portal_at_mut(&mut self, index: usize) -> Option<&mut Portal> {
         self.portals.get_mut(index)
     }
 
@@ -72,19 +72,23 @@ impl<'a> PortalCollection<'a> for RoomHashMap<'a> {
     }
 }
 
-impl<'a> Room<'a> for RoomHashMap<'a> {
-    fn portals(&'a self) -> Portals<'a> {
+impl Room for RoomHashMap {
+    fn box_clone(&self) -> Box<dyn Room> {
+        Box::new((*self).clone())
+    }
+    
+    fn portals(& self) -> Portals {
         Portals::new(&self.portals)
     }
-    fn portals_mut(&'a mut self) -> PortalsMut<'a> {
+    fn portals_mut(&mut self) -> PortalsMut {
         PortalsMut::new(&mut self.portals)
     }
 
-    fn sub_rooms(&'a self) -> SubRooms<'a> {
+    fn sub_rooms(&self) -> SubRooms {
         SubRooms::new(&self.sub_rooms)
     }
 
-    fn sub_rooms_mut(&'a mut self) -> SubRoomsMut<'a> {
+    fn sub_rooms_mut(& mut self) -> SubRoomsMut {
         SubRoomsMut::new(&mut self.sub_rooms)
     }
 
@@ -108,18 +112,18 @@ impl<'a> Room<'a> for RoomHashMap<'a> {
     }
 }
 
-impl<'a> Shape for RoomHashMap<'a> {}
+impl Shape for RoomHashMap {}
 
-impl<'a> SubRoomCollection<'a> for RoomHashMap<'a> {
-    fn add_sub_room(&mut self, local: LocalPosition, target: &'static dyn Room<'a>) {
+impl SubRoomCollection for RoomHashMap {
+    fn add_sub_room(&mut self, local: LocalPosition, target: Box<dyn Room>) {
         self.sub_rooms.push(SubRoom::new(local, target))
     }
 
-    fn get_sub_room_at(&self, index: usize) -> Option<&SubRoom<'a>> {
+    fn get_sub_room_at(&self, index: usize) -> Option<&SubRoom> {
         self.sub_rooms.get(index)
     }
 
-    fn get_sub_room_at_mut(&mut self, index: usize) -> Option<&mut SubRoom<'a>> {
+    fn get_sub_room_at_mut(&mut self, index: usize) -> Option<&mut SubRoom> {
         self.sub_rooms.get_mut(index)
     }
 
@@ -128,7 +132,7 @@ impl<'a> SubRoomCollection<'a> for RoomHashMap<'a> {
     }
 }
 
-impl<'a> HasSize for RoomHashMap<'a> {
+impl HasSize for RoomHashMap {
     fn size(&self) -> &Size {
         &self.size
     }
