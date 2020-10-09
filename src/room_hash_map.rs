@@ -62,7 +62,8 @@ impl PortalCollection for RoomHashMap {
         target: Box<dyn PlacedRoom>,
     ) {
         self.portals
-            .push(Portal::new(local, portal_to_room_facing, target))
+            .push(Portal::new(local, portal_to_room_facing, target));
+        self.tile_type_at_local_set(local, TileType::Portal);
     }
 
     fn get_portal_at(&self, index: usize) -> Option<&Portal> {
