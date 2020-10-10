@@ -11,6 +11,9 @@ use std::default::Default;
 
 // Internal includes.
 
+/// A room which stores its [`TileType`](enum.TileType.html) information in a `HashMap`, indexed by [`LocalPosition`](geometry/struct.LocalPosition.html).
+/// 
+/// The size of the `RoomHashMap` will expand based on the `LocalPosition` provided, as per the specification for [`Room`](trait.Room.html).
 #[derive(Clone)]
 pub struct RoomHashMap {
     local: LocalPosition,
@@ -21,6 +24,9 @@ pub struct RoomHashMap {
 }
 
 impl RoomHashMap {
+    /// Creates a new `RoomHashMap`. As `RoomHashMap` expands to meet its use, no parameters need be supplied.
+    ///
+    /// `RoomHashMap::default()` defers to `RoomHashMap::new()`.
     pub fn new() -> Self {
         Self {
             local: LocalPosition::new(0, 0),
