@@ -11,14 +11,14 @@ use std::default::Default;
 
 // Internal includes.
 
-/// A room which stores its [`TileType`](enum.TileType.html) information in a `HashMap`, indexed by [`LocalPosition`](geometry/struct.LocalPosition.html).
+/// A room which stores its [`TileType`](enum.TileType.html) information in a `HashMap`, indexed by [`ShapePosition`](geometry/struct.ShapePosition.html).
 ///
-/// The size of the `RoomHashMap` will expand based on the `LocalPosition` provided, as per the specification for [`Room`](trait.Room.html).
+/// The size of the `RoomHashMap` will expand based on the `ShapePosition` provided, as per the specification for [`Room`](trait.Room.html).
 #[derive(Clone)]
 pub struct RoomHashMap {
-    local: LocalPosition,
+    shape_position: ShapePosition,
     size: Size,
-    tiles: HashMap<LocalPosition, TileType>,
+    tiles: HashMap<ShapePosition, TileType>,
     portals: Vec<Portal>,
     sub_rooms: Vec<SubRoom>,
 }
@@ -29,7 +29,7 @@ impl RoomHashMap {
     /// `RoomHashMap::default()` defers to `RoomHashMap::new()`.
     pub fn new() -> Self {
         Self {
-            local: LocalPosition::new(0, 0),
+            shape_position: ShapePosition::new(0, 0),
             size: Size::new(0, 0),
             tiles: HashMap::new(),
             portals: Vec::new(),
@@ -44,18 +44,18 @@ impl Default for RoomHashMap {
     }
 }
 
-impl HasLocalPosition for RoomHashMap {
-    fn local(&self) -> &LocalPosition {
-        &self.local
+impl HasShapePosition for RoomHashMap {
+    fn shape_position(&self) -> &ShapePosition {
+        &self.shape_position
     }
 
-    fn local_mut(&mut self) -> &mut LocalPosition {
-        &mut self.local
+    fn shape_position_mut(&mut self) -> &mut ShapePosition {
+        &mut self.shape_position
     }
 }
 
-impl IntersectsLocalPos for RoomHashMap {
-    fn intersects_local_pos(&self, pos: LocalPosition) -> bool {
+impl IntersectsShapePosition for RoomHashMap {
+    fn intersects_shape_position(&self, pos: ShapePosition) -> bool {
         self.tiles.contains_key(&pos)
     }
 }
@@ -63,13 +63,16 @@ impl IntersectsLocalPos for RoomHashMap {
 impl PortalCollection for RoomHashMap {
     fn add_portal(
         &mut self,
-        local: LocalPosition,
+        local_shape_position: ShapePosition,
         portal_to_room_facing: OrdinalDirection,
         target: Box<dyn PlacedRoom>,
     ) {
-        self.portals
-            .push(Portal::new(local, portal_to_room_facing, target));
-        self.tile_type_at_local_set(local, TileType::Portal);
+        self.portals.push(Portal::new(
+            local_shape_position,
+            portal_to_room_facing,
+            target,
+        ));
+        self.tile_type_at_local_set(local_shape_position, TileType::Portal);
     }
 
     fn get_portal_at(&self, index: usize) -> Option<&Portal> {
@@ -105,21 +108,21 @@ impl Room for RoomHashMap {
         SubRoomsMut::new(&mut self.sub_rooms)
     }
 
-    fn tile_type_at_local(&self, pos: LocalPosition) -> Option<&TileType> {
+    fn tile_type_at_local(&self, pos: ShapePosition) -> Option<&TileType> {
         self.tiles.get(&pos)
     }
 
-    fn tile_type_at_local_mut(&mut self, pos: LocalPosition) -> Option<&mut TileType> {
+    fn tile_type_at_local_mut(&mut self, pos: ShapePosition) -> Option<&mut TileType> {
         self.tiles.get_mut(&pos)
     }
 
     fn tile_type_at_local_set(
         &mut self,
-        pos: LocalPosition,
+        pos: ShapePosition,
         tile_type: TileType,
     ) -> Option<TileType> {
-        *self.size_mut().height_mut() = self.size.height().max(pos.y() + 1);
-        *self.size_mut().width_mut() = self.size.width().max(pos.x() + 1);
+        *self.size_mut().height_mut() = self.size.height().max(pos.y() as u32 + 1);
+        *self.size_mut().width_mut() = self.size.width().max(pos.x() as u32 + 1);
 
         self.tiles.insert(pos, tile_type)
     }
@@ -128,8 +131,9 @@ impl Room for RoomHashMap {
 impl Shape for RoomHashMap {}
 
 impl SubRoomCollection for RoomHashMap {
-    fn add_sub_room(&mut self, local: LocalPosition, target: Box<dyn Room>) {
-        self.sub_rooms.push(SubRoom::new(local, target))
+    fn add_sub_room(&mut self, local_shape_position: ShapePosition, target: Box<dyn Room>) {
+        self.sub_rooms
+            .push(SubRoom::new(local_shape_position, target))
     }
 
     fn get_sub_room_at(&self, index: usize) -> Option<&SubRoom> {
