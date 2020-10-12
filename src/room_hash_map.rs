@@ -1,7 +1,7 @@
 // External includes.
 use super::{
-    PlacedRoom, Portal, PortalCollection, Portals, PortalsMut, Room, SubRoom, SubRoomCollection,
-    SubRooms, SubRoomsMut, TileType,
+    get_new_room_id, PlacedRoom, Portal, PortalCollection, Portals, PortalsMut, Room, SubRoom,
+    SubRoomCollection, SubRooms, SubRoomsMut, TileType,
 };
 use crate::geometry::*;
 
@@ -16,6 +16,7 @@ use std::default::Default;
 /// The size of the `RoomHashMap` will expand based on the `ShapePosition` provided, as per the specification for [`Room`](trait.Room.html).
 #[derive(Clone)]
 pub struct RoomHashMap {
+    id: u64,
     shape_position: ShapePosition,
     size: Size,
     tiles: HashMap<ShapePosition, TileType>,
@@ -29,6 +30,7 @@ impl RoomHashMap {
     /// `RoomHashMap::default()` defers to `RoomHashMap::new()`.
     pub fn new() -> Self {
         Self {
+            id: get_new_room_id(),
             shape_position: ShapePosition::new(0, 0),
             size: Size::new(0, 0),
             tiles: HashMap::new(),
@@ -91,6 +93,10 @@ impl PortalCollection for RoomHashMap {
 impl Room for RoomHashMap {
     fn box_clone(&self) -> Box<dyn Room> {
         Box::new((*self).clone())
+    }
+
+    fn id(&self) -> u64 {
+        self.id
     }
 
     fn portals(&self) -> Portals {
