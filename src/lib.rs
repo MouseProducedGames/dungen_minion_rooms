@@ -11,9 +11,9 @@ pub use dungen_minion_rooms_abstract::*;
 // Standard includes.
 
 // Internal includes.
-mod room_hash_map;
+mod map_sparse;
 
-pub use room_hash_map::RoomHashMap;
+pub use map_sparse::MapSparse;
 
 #[cfg(test)]
 mod tests {
