@@ -1,7 +1,7 @@
 // External includes.
 use super::{
-    get_new_map_id, register_room, Map, MapId, Portal, PortalCollection, Portals, PortalsMut,
-    SubRoom, SubRoomCollection, SubRooms, SubRoomsMut, TileType,
+    get_new_map_id, register_map, Map, MapId, Portal, PortalCollection, Portals, PortalsMut,
+    SubMap, SubMapCollection, SubMaps, SubMapsMut, TileType,
 };
 use crate::geometry::*;
 
@@ -10,7 +10,7 @@ use std::collections::HashMap;
 
 // Internal includes.
 
-/// A room which stores its [`TileType`](enum.TileType.html) information in a `HashMap`, indexed by [`Position`](geometry/struct.Position.html).
+/// A map which stores its [`TileType`](enum.TileType.html) information in a `HashMap`, indexed by [`Position`](geometry/struct.Position.html).
 ///
 /// The size of the `MapSparse` will expand based on the `Position` provided, as per the specification for [`Map`](trait.Map.html).
 #[derive(Clone)]
@@ -19,20 +19,21 @@ pub struct MapSparse {
     area: Area,
     tiles: HashMap<Position, TileType>,
     portals: Vec<Portal>,
-    sub_rooms: Vec<SubRoom>,
+    sub_maps: Vec<SubMap>,
 }
 
 impl MapSparse {
     /// Creates a new `MapSparse`. As `MapSparse` expands to meet its use, no parameters need be supplied.
     ///
     /// `MapSparse::default()` defers to `MapSparse::new()`.
+    #[allow(clippy::new_ret_no_self)]
     pub fn new() -> MapId {
-        register_room(Self {
+        register_map(Self {
             map_id: get_new_map_id(),
             area: Area::new(Position::zero(), Size::zero()),
             tiles: HashMap::new(),
             portals: Vec::new(),
-            sub_rooms: Vec::new(),
+            sub_maps: Vec::new(),
         })
     }
 }
@@ -76,14 +77,14 @@ impl PortalCollection for MapSparse {
     fn add_portal(
         &mut self,
         local_position: Position,
-        portal_to_room_facing: OrdinalDirection,
-        portal_to_room_position: Position,
+        portal_to_map_facing: OrdinalDirection,
+        portal_to_map_position: Position,
         target: MapId,
     ) {
         self.portals.push(Portal::new(
             local_position,
-            portal_to_room_facing,
-            portal_to_room_position,
+            portal_to_map_facing,
+            portal_to_map_position,
             target,
         ));
         self.tile_type_at_local_set(local_position, TileType::Portal);
@@ -137,29 +138,29 @@ impl Map for MapSparse {
 
 impl Shape for MapSparse {}
 
-impl SubRoomCollection for MapSparse {
-    fn add_sub_room(&mut self, local_position: Position, target: MapId) {
-        self.sub_rooms.push(SubRoom::new(local_position, target))
+impl SubMapCollection for MapSparse {
+    fn add_sub_map(&mut self, local_position: Position, target: MapId) {
+        self.sub_maps.push(SubMap::new(local_position, target))
     }
 
-    fn get_sub_room_at(&self, index: usize) -> Option<&SubRoom> {
-        self.sub_rooms.get(index)
+    fn get_sub_map_at(&self, index: usize) -> Option<&SubMap> {
+        self.sub_maps.get(index)
     }
 
-    fn get_sub_room_at_mut(&mut self, index: usize) -> Option<&mut SubRoom> {
-        self.sub_rooms.get_mut(index)
+    fn get_sub_map_at_mut(&mut self, index: usize) -> Option<&mut SubMap> {
+        self.sub_maps.get_mut(index)
     }
 
-    fn sub_room_count(&self) -> usize {
-        self.sub_rooms.len()
+    fn sub_map_count(&self) -> usize {
+        self.sub_maps.len()
     }
 
-    fn sub_rooms(&self) -> SubRooms {
-        SubRooms::new(&self.sub_rooms)
+    fn sub_maps(&self) -> SubMaps {
+        SubMaps::new(&self.sub_maps)
     }
 
-    fn sub_rooms_mut(&mut self) -> SubRoomsMut {
-        SubRoomsMut::new(&mut self.sub_rooms)
+    fn sub_maps_mut(&mut self) -> SubMapsMut {
+        SubMapsMut::new(&mut self.sub_maps)
     }
 }
 
