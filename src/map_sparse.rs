@@ -12,9 +12,9 @@ use std::collections::HashMap;
 
 /// A map which stores its [`TileType`](enum.TileType.html) information in a `HashMap`, indexed by [`Position`](geometry/struct.Position.html).
 ///
-/// The size of the `MapSparse` will expand based on the `Position` provided, as per the specification for [`Map`](trait.Map.html).
+/// The size of the `SparseMap` will expand based on the `Position` provided, as per the specification for [`Map`](trait.Map.html).
 #[derive(Clone)]
-pub struct MapSparse {
+pub struct SparseMap {
     map_id: MapId,
     area: Area,
     tiles: HashMap<Position, TileType>,
@@ -22,10 +22,10 @@ pub struct MapSparse {
     sub_maps: Vec<SubMap>,
 }
 
-impl MapSparse {
-    /// Creates a new `MapSparse`. As `MapSparse` expands to meet its use, no parameters need be supplied.
+impl SparseMap {
+    /// Creates a new `SparseMap`. As `SparseMap` expands to meet its use, no parameters need be supplied.
     ///
-    /// `MapSparse::default()` defers to `MapSparse::new()`.
+    /// `SparseMap::default()` defers to `SparseMap::new()`.
     #[allow(clippy::new_ret_no_self)]
     pub fn new() -> MapId {
         register_map(Self {
@@ -38,7 +38,7 @@ impl MapSparse {
     }
 }
 
-impl HasArea for MapSparse {
+impl HasArea for SparseMap {
     fn area(&self) -> &Area {
         &self.area
     }
@@ -48,7 +48,7 @@ impl HasArea for MapSparse {
     }
 }
 
-impl HasPosition for MapSparse {
+impl HasPosition for SparseMap {
     fn position(&self) -> &Position {
         self.area.position()
     }
@@ -58,7 +58,7 @@ impl HasPosition for MapSparse {
     }
 }
 
-impl IntersectsPos for MapSparse {
+impl IntersectsPos for SparseMap {
     fn intersects_pos(&self, position: Position) -> bool {
         !(position.x() < self.position().x()
             || position.y() < self.position().y()
@@ -67,13 +67,13 @@ impl IntersectsPos for MapSparse {
     }
 }
 
-impl Placed for MapSparse {}
+impl Placed for SparseMap {}
 
-impl PlacedObject for MapSparse {}
+impl PlacedObject for SparseMap {}
 
-impl PlacedShape for MapSparse {}
+impl PlacedShape for SparseMap {}
 
-impl PortalCollection for MapSparse {
+impl PortalCollection for SparseMap {
     fn add_portal(
         &mut self,
         local_position: Position,
@@ -111,7 +111,7 @@ impl PortalCollection for MapSparse {
     }
 }
 
-impl Map for MapSparse {
+impl Map for SparseMap {
     fn box_clone(&self) -> Box<dyn Map> {
         Box::new((*self).clone())
     }
@@ -136,9 +136,9 @@ impl Map for MapSparse {
     }
 }
 
-impl Shape for MapSparse {}
+impl Shape for SparseMap {}
 
-impl SubMapCollection for MapSparse {
+impl SubMapCollection for SparseMap {
     fn add_sub_map(&mut self, local_position: Position, target: MapId) {
         self.sub_maps.push(SubMap::new(local_position, target))
     }
@@ -164,7 +164,7 @@ impl SubMapCollection for MapSparse {
     }
 }
 
-impl HasSize for MapSparse {
+impl HasSize for SparseMap {
     fn size(&self) -> &Size {
         self.area.size()
     }
