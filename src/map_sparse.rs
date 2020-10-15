@@ -7,7 +7,6 @@ use crate::geometry::*;
 
 // Standard includes.
 use std::collections::HashMap;
-use std::default::Default;
 
 // Internal includes.
 
