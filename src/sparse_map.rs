@@ -1,7 +1,7 @@
 // External includes.
 use super::{
     get_new_map_id, register_map, Map, MapId, Portal, PortalCollection, Portals, PortalsMut,
-    SubMap, SubMapCollection, SubMaps, SubMapsMut, TileType,
+    SubMap, SubMapCollection, SubMaps, SubMapsMut, TileType, MAPS,
 };
 use crate::geometry::*;
 
@@ -120,8 +120,25 @@ impl Map for SparseMap {
         self.map_id
     }
 
-    fn tile_type_at_local(&self, pos: Position) -> Option<&TileType> {
-        self.tiles.get(&pos)
+    fn tile_type_at_local(&self, pos: Position) -> Option<TileType> {
+        if !self.sub_maps.is_empty() {
+            let maps = MAPS.read();
+            for sub_map in self.sub_maps.iter() {
+                let map = maps[sub_map.value()].read();
+                // println!("*sub_map.local_position() {}", *sub_map.local_position());
+                let sub_map_position = *sub_map.local_position();
+                let local_position = pos - sub_map_position;
+                let test = map.tile_type_at_local(local_position);
+                if test.is_some() {
+                    return test;
+                }
+            }
+        }
+
+        match self.tiles.get(&pos) {
+            Some(tile_type) => Some(*tile_type),
+            None => None,
+        }
     }
 
     fn tile_type_at_local_mut(&mut self, pos: Position) -> Option<&mut TileType> {
@@ -129,6 +146,18 @@ impl Map for SparseMap {
     }
 
     fn tile_type_at_local_set(&mut self, pos: Position, tile_type: TileType) -> Option<TileType> {
+        if !self.sub_maps.is_empty() {
+            let maps = MAPS.read();
+            for sub_map in self.sub_maps.iter() {
+                let mut map = maps[sub_map.value()].write();
+                let sub_map_position = *sub_map.local_position();
+                let local_position = pos - sub_map_position;
+                if map.is_local_position_valid(local_position) {
+                    map.tile_type_at_local_set(local_position, tile_type);
+                }
+            }
+        }
+
         *self.size_mut().height_mut() = self.size().height().max(pos.y() as u32 + 1);
         *self.size_mut().width_mut() = self.size().width().max(pos.x() as u32 + 1);
 
