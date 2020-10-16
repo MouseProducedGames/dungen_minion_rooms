@@ -77,7 +77,7 @@ impl PortalCollection for SparseMap {
     fn add_portal(
         &mut self,
         local_position: Position,
-        portal_to_map_facing: OrdinalDirection,
+        portal_to_map_facing: CardinalDirection,
         portal_to_map_position: Position,
         target: MapId,
     ) {
