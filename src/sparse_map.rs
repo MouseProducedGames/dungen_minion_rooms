@@ -87,6 +87,50 @@ impl Map for SparseMap {
         self.map_id
     }
 
+    fn rotate(&mut self, rotation: CardinalRotation) {
+        /* if rotation == CardinalRotation::None {
+            return;
+        } */
+
+        let mut new_tiles = HashMap::<Position, TileType>::new();
+
+        let self_position = *self.position();
+        let new_self_position = self_position * rotation;
+        let adjust_position = match rotation {
+            CardinalRotation::None => Position::new(0, 0),
+            CardinalRotation::Right90 => Position::new(0, (self.area().width() as i32 - 1).max(0)),
+            CardinalRotation::Full180 => Position::new(
+                (self.area().width() as i32 - 1).max(0),
+                (self.area().height() as i32 - 1).max(0),
+            ),
+            CardinalRotation::Left90 => Position::new((self.area().height() as i32 - 1).max(0), 0),
+        };
+        println!("{} => {}", rotation, adjust_position);
+
+        for portal_mut in self.portals.iter_mut() {
+            let portal_local_position = *portal_mut.local_position() - self_position;
+            let new_portal_local_position = portal_local_position * rotation;
+            let new_portal_position = new_self_position + new_portal_local_position;
+            *portal_mut.local_position_mut() = adjust_position + new_portal_position;
+        }
+
+        for kvp in self.tiles.iter() {
+            let tile_local_position = *kvp.0 - self_position;
+            let new_tile_local_position = tile_local_position * rotation;
+            let new_tile_position = new_self_position + new_tile_local_position;
+            new_tiles.insert(adjust_position + new_tile_position, *kvp.1);
+        }
+
+        self.tiles = new_tiles;
+        *self.position_mut() = new_self_position;
+        *self.size_mut() = match rotation {
+            CardinalRotation::None => *self.size(),
+            CardinalRotation::Right90 => Size::new(self.size().height(), self.size().width()),
+            CardinalRotation::Full180 => *self.size(),
+            CardinalRotation::Left90 => Size::new(self.size().height(), self.size().width()),
+        }
+    }
+
     fn tile_type_at_local(&self, pos: Position) -> Option<TileType> {
         let mut output = None;
         if !self.sub_maps.is_empty() {
@@ -94,14 +138,18 @@ impl Map for SparseMap {
             for sub_map in self.sub_maps.iter() {
                 let map = maps[sub_map.value()].read();
                 // println!("*sub_map.local_position() {}", *sub_map.local_position());
+                // let sub_map_position = *sub_map.local_position();
                 let sub_map_position = *sub_map.local_position();
-                let local_position = pos - sub_map_position;
+                // let local_position = pos - sub_map_position;
+                let local_position = pos - sub_map_position + *self.position();
+                // println!("{}", local_position);
                 let test = map.tile_type_at_local(local_position);
                 output = *TileTypeStandardCmp::return_greater_option(&output, &test);
             }
         }
 
-        let self_tile_type = if let Some(tile_type) = self.tiles.get(&pos) {
+        //let self_tile_type = if let Some(tile_type) = self.tiles.get(&pos) {
+        let self_tile_type = if let Some(tile_type) = self.tiles.get(&(pos + *self.position())) {
             Some(*tile_type)
         } else {
             None
@@ -112,7 +160,8 @@ impl Map for SparseMap {
     }
 
     fn tile_type_at_local_mut(&mut self, pos: Position) -> Option<&mut TileType> {
-        self.tiles.get_mut(&pos)
+        // self.tiles.get_mut(&pos)
+        self.tiles.get_mut(&(pos + *self.position()))
     }
 
     fn tile_type_at_local_set(&mut self, pos: Position, tile_type: TileType) -> Option<TileType> {
@@ -131,7 +180,8 @@ impl Map for SparseMap {
         *self.size_mut().height_mut() = self.size().height().max(pos.y() as u32 + 1);
         *self.size_mut().width_mut() = self.size().width().max(pos.x() as u32 + 1);
 
-        self.tiles.insert(pos, tile_type)
+        // self.tiles.insert(pos, tile_type)
+        self.tiles.insert(pos + *self.position(), tile_type)
     }
 
     /// Gets an option for an immutable reference to the `TileType` at the given local `Position`. Returns None if the local `Position` is out of bounds, or there is no tile at that location.
@@ -148,8 +198,10 @@ impl Map for SparseMap {
             for sub_map in self.sub_maps.iter() {
                 let map = maps[sub_map.value()].read();
                 // println!("*sub_map.local_position() {}", *sub_map.local_position());
+                // let sub_map_position = *sub_map.local_position();
                 let sub_map_position = *sub_map.local_position();
-                let local_position = pos - sub_map_position;
+                // let local_position = pos - sub_map_position;
+                let local_position = pos - sub_map_position + *self.position();
                 let test = map.tile_type_at_local(local_position);
                 output = match sort_best(&output, &test) {
                     std::cmp::Ordering::Greater => output,
@@ -159,7 +211,8 @@ impl Map for SparseMap {
             }
         }
 
-        let self_tile_type = if let Some(tile_type) = self.tiles.get(&pos) {
+        // let self_tile_type = if let Some(tile_type) = self.tiles.get(&pos) {
+        let self_tile_type = if let Some(tile_type) = self.tiles.get(&(pos + *self.position())) {
             Some(*tile_type)
         } else {
             None
@@ -222,6 +275,34 @@ impl Shape for SparseMap {}
 
 impl SubMapCollection for SparseMap {
     fn add_sub_map(&mut self, local_position: Position, target: MapId) {
+        let target_left = local_position.x();
+        let target_top = local_position.y();
+        let target_size = *MAPS.read()[target].read().size();
+        let target_right = target_left + (target_size.width() as Coord - 1).max(0);
+        let target_bottom = target_top + (target_size.width() as Coord - 1).max(0);
+
+        let self_left = self.position().x();
+        let self_top = self.position().y();
+        let self_right = self.area().right();
+        let self_bottom = self.area().bottom();
+
+        let new_left = self_left.min(target_left);
+        let new_top = self_top.min(target_top);
+        let new_right = self_right.max(target_right);
+        let new_bottom = self_bottom.max(target_bottom);
+
+        let shift_left = (new_left - self_left).min(0);
+        let shift_top = (new_top - self_top).min(0);
+        let shift_right = (new_right - self_right).max(0) as Length;
+        let shift_bottom = (new_bottom - self_bottom).max(0) as Length;
+
+        let drift_width = shift_left.abs() as Length;
+        let drift_height = shift_top.abs() as Length;
+
+        *self.position_mut() = *self.position() + Position::new(shift_left, shift_top);
+        *self.size_mut().width_mut() = self.size().width() + shift_right + drift_width;
+        *self.size_mut().height_mut() = self.size().height() + shift_bottom + drift_height;
+
         self.sub_maps.push(SubMap::new(local_position, target))
     }
 
