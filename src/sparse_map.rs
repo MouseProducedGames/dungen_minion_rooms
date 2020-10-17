@@ -1,7 +1,8 @@
 // External includes.
 use super::{
     get_new_map_id, register_map, Map, MapId, Portal, PortalCollection, Portals, PortalsMut,
-    SubMap, SubMapCollection, SubMaps, SubMapsMut, TileType, MAPS,
+    SubMap, SubMapCollection, SubMaps, SubMapsMut, TileType, TileTypeCmp, TileTypeStandardCmp,
+    MAPS,
 };
 use crate::geometry::*;
 
@@ -121,6 +122,7 @@ impl Map for SparseMap {
     }
 
     fn tile_type_at_local(&self, pos: Position) -> Option<TileType> {
+        let mut output = None;
         if !self.sub_maps.is_empty() {
             let maps = MAPS.read();
             for sub_map in self.sub_maps.iter() {
@@ -129,16 +131,18 @@ impl Map for SparseMap {
                 let sub_map_position = *sub_map.local_position();
                 let local_position = pos - sub_map_position;
                 let test = map.tile_type_at_local(local_position);
-                if test.is_some() {
-                    return test;
-                }
+                output = *TileTypeStandardCmp::return_greater_option(&output, &test);
             }
         }
 
-        match self.tiles.get(&pos) {
-            Some(tile_type) => Some(*tile_type),
-            None => None,
-        }
+        let self_tile_type = if let Some(tile_type) = self.tiles.get(&pos) {
+            Some(*tile_type)
+        } else {
+            None
+        };
+        output = *TileTypeStandardCmp::return_greater_option(&output, &self_tile_type);
+
+        output
     }
 
     fn tile_type_at_local_mut(&mut self, pos: Position) -> Option<&mut TileType> {
@@ -162,6 +166,45 @@ impl Map for SparseMap {
         *self.size_mut().width_mut() = self.size().width().max(pos.x() as u32 + 1);
 
         self.tiles.insert(pos, tile_type)
+    }
+
+    /// Gets an option for an immutable reference to the `TileType` at the given local `Position`. Returns None if the local `Position` is out of bounds, or there is no tile at that location.
+    ///
+    /// Uses a comparison function to determine which sub-map tile has priority, if any.
+    fn tile_type_at_local_sort_by<'a>(
+        &self,
+        pos: Position,
+        sort_best: &dyn Fn(&Option<TileType>, &Option<TileType>) -> std::cmp::Ordering,
+    ) -> Option<TileType> {
+        let mut output = None;
+        if !self.sub_maps.is_empty() {
+            let maps = MAPS.read();
+            for sub_map in self.sub_maps.iter() {
+                let map = maps[sub_map.value()].read();
+                // println!("*sub_map.local_position() {}", *sub_map.local_position());
+                let sub_map_position = *sub_map.local_position();
+                let local_position = pos - sub_map_position;
+                let test = map.tile_type_at_local(local_position);
+                output = match sort_best(&output, &test) {
+                    std::cmp::Ordering::Greater => output,
+                    std::cmp::Ordering::Equal => output,
+                    std::cmp::Ordering::Less => test,
+                };
+            }
+        }
+
+        let self_tile_type = if let Some(tile_type) = self.tiles.get(&pos) {
+            Some(*tile_type)
+        } else {
+            None
+        };
+        output = match sort_best(&output, &self_tile_type) {
+            std::cmp::Ordering::Greater => output,
+            std::cmp::Ordering::Equal => output,
+            std::cmp::Ordering::Less => self_tile_type,
+        };
+
+        output
     }
 }
 
