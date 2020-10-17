@@ -59,56 +59,22 @@ impl HasPosition for SparseMap {
     }
 }
 
+impl HasSize for SparseMap {
+    fn size(&self) -> &Size {
+        self.area.size()
+    }
+
+    fn size_mut(&mut self) -> &mut Size {
+        self.area.size_mut()
+    }
+}
+
 impl IntersectsPos for SparseMap {
     fn intersects_pos(&self, position: Position) -> bool {
         !(position.x() < self.position().x()
             || position.y() < self.position().y()
             || position.x() >= self.area.right()
             || position.y() >= self.area.bottom())
-    }
-}
-
-impl Placed for SparseMap {}
-
-impl PlacedObject for SparseMap {}
-
-impl PlacedShape for SparseMap {}
-
-impl PortalCollection for SparseMap {
-    fn add_portal(
-        &mut self,
-        local_position: Position,
-        portal_to_map_facing: CardinalDirection,
-        portal_to_map_position: Position,
-        target: MapId,
-    ) {
-        self.portals.push(Portal::new(
-            local_position,
-            portal_to_map_facing,
-            portal_to_map_position,
-            target,
-        ));
-        self.tile_type_at_local_set(local_position, TileType::Portal);
-    }
-
-    fn get_portal_at(&self, index: usize) -> Option<&Portal> {
-        self.portals.get(index)
-    }
-
-    fn get_portal_at_mut(&mut self, index: usize) -> Option<&mut Portal> {
-        self.portals.get_mut(index)
-    }
-
-    fn portal_count(&self) -> usize {
-        self.portals.len()
-    }
-
-    fn portals(&self) -> Portals {
-        Portals::new(&self.portals)
-    }
-
-    fn portals_mut(&mut self) -> PortalsMut {
-        PortalsMut::new(&mut self.portals)
     }
 }
 
@@ -208,6 +174,50 @@ impl Map for SparseMap {
     }
 }
 
+impl Placed for SparseMap {}
+
+impl PlacedObject for SparseMap {}
+
+impl PlacedShape for SparseMap {}
+
+impl PortalCollection for SparseMap {
+    fn add_portal(
+        &mut self,
+        local_position: Position,
+        portal_to_map_facing: CardinalDirection,
+        portal_to_map_position: Position,
+        target: MapId,
+    ) {
+        self.portals.push(Portal::new(
+            local_position,
+            portal_to_map_facing,
+            portal_to_map_position,
+            target,
+        ));
+        self.tile_type_at_local_set(local_position, TileType::Portal);
+    }
+
+    fn get_portal_at(&self, index: usize) -> Option<&Portal> {
+        self.portals.get(index)
+    }
+
+    fn get_portal_at_mut(&mut self, index: usize) -> Option<&mut Portal> {
+        self.portals.get_mut(index)
+    }
+
+    fn portal_count(&self) -> usize {
+        self.portals.len()
+    }
+
+    fn portals(&self) -> Portals {
+        Portals::new(&self.portals)
+    }
+
+    fn portals_mut(&mut self) -> PortalsMut {
+        PortalsMut::new(&mut self.portals)
+    }
+}
+
 impl Shape for SparseMap {}
 
 impl SubMapCollection for SparseMap {
@@ -233,15 +243,5 @@ impl SubMapCollection for SparseMap {
 
     fn sub_maps_mut(&mut self) -> SubMapsMut {
         SubMapsMut::new(&mut self.sub_maps)
-    }
-}
-
-impl HasSize for SparseMap {
-    fn size(&self) -> &Size {
-        self.area.size()
-    }
-
-    fn size_mut(&mut self) -> &mut Size {
-        self.area.size_mut()
     }
 }
