@@ -105,7 +105,6 @@ impl Map for SparseMap {
             ),
             CardinalRotation::Left90 => Position::new((self.area().height() as i32 - 1).max(0), 0),
         };
-        println!("{} => {}", rotation, adjust_position);
 
         for portal_mut in self.portals.iter_mut() {
             let portal_local_position = *portal_mut.local_position() - self_position;
@@ -137,18 +136,13 @@ impl Map for SparseMap {
             let maps = MAPS.read();
             for sub_map in self.sub_maps.iter() {
                 let map = maps[sub_map.value()].read();
-                // println!("*sub_map.local_position() {}", *sub_map.local_position());
-                // let sub_map_position = *sub_map.local_position();
                 let sub_map_position = *sub_map.local_position();
-                // let local_position = pos - sub_map_position;
                 let local_position = pos - sub_map_position + *self.position();
-                // println!("{}", local_position);
                 let test = map.tile_type_at_local(local_position);
                 output = *TileTypeStandardCmp::return_greater_option(&output, &test);
             }
         }
 
-        //let self_tile_type = if let Some(tile_type) = self.tiles.get(&pos) {
         let self_tile_type = if let Some(tile_type) = self.tiles.get(&(pos + *self.position())) {
             Some(*tile_type)
         } else {
@@ -160,7 +154,6 @@ impl Map for SparseMap {
     }
 
     fn tile_type_at_local_mut(&mut self, pos: Position) -> Option<&mut TileType> {
-        // self.tiles.get_mut(&pos)
         self.tiles.get_mut(&(pos + *self.position()))
     }
 
@@ -180,7 +173,6 @@ impl Map for SparseMap {
         *self.size_mut().height_mut() = self.size().height().max(pos.y() as u32 + 1);
         *self.size_mut().width_mut() = self.size().width().max(pos.x() as u32 + 1);
 
-        // self.tiles.insert(pos, tile_type)
         self.tiles.insert(pos + *self.position(), tile_type)
     }
 
@@ -197,10 +189,7 @@ impl Map for SparseMap {
             let maps = MAPS.read();
             for sub_map in self.sub_maps.iter() {
                 let map = maps[sub_map.value()].read();
-                // println!("*sub_map.local_position() {}", *sub_map.local_position());
-                // let sub_map_position = *sub_map.local_position();
                 let sub_map_position = *sub_map.local_position();
-                // let local_position = pos - sub_map_position;
                 let local_position = pos - sub_map_position + *self.position();
                 let test = map.tile_type_at_local(local_position);
                 output = match sort_best(&output, &test) {
@@ -211,7 +200,6 @@ impl Map for SparseMap {
             }
         }
 
-        // let self_tile_type = if let Some(tile_type) = self.tiles.get(&pos) {
         let self_tile_type = if let Some(tile_type) = self.tiles.get(&(pos + *self.position())) {
             Some(*tile_type)
         } else {
