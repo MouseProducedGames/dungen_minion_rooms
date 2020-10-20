@@ -263,33 +263,12 @@ impl Shape for SparseMap {}
 
 impl SubMapCollection for SparseMap {
     fn add_sub_map(&mut self, local_position: Position, target: MapId) {
-        let target_left = local_position.x();
-        let target_top = local_position.y();
-        let target_size = *MAPS.read()[target].read().size();
-        let target_right = target_left + (target_size.width() as Coord - 1).max(0);
-        let target_bottom = target_top + (target_size.width() as Coord - 1).max(0);
-
-        let self_left = self.position().x();
-        let self_top = self.position().y();
-        let self_right = self.area().right();
-        let self_bottom = self.area().bottom();
-
-        let new_left = self_left.min(target_left);
-        let new_top = self_top.min(target_top);
-        let new_right = self_right.max(target_right);
-        let new_bottom = self_bottom.max(target_bottom);
-
-        let shift_left = (new_left - self_left).min(0);
-        let shift_top = (new_top - self_top).min(0);
-        let shift_right = (new_right - self_right).max(0) as Length;
-        let shift_bottom = (new_bottom - self_bottom).max(0) as Length;
-
-        let drift_width = shift_left.abs() as Length;
-        let drift_height = shift_top.abs() as Length;
-
-        *self.position_mut() = *self.position() + Position::new(shift_left, shift_top);
-        *self.size_mut().width_mut() = self.size().width() + shift_right + drift_width;
-        *self.size_mut().height_mut() = self.size().height() + shift_bottom + drift_height;
+        let target_area = *MAPS.read()[target].read().area();
+        let area = self.area_mut();
+        *area.position_mut().x_mut() = area.position().x().min(target_area.position().x());
+        *area.position_mut().y_mut() = area.position().y().min(target_area.position().y());
+        area.right_set(area.right().max(target_area.right()));
+        area.bottom_set(area.bottom().max(target_area.bottom()));
 
         self.sub_maps.push(SubMap::new(local_position, target))
     }
