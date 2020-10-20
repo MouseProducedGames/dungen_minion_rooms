@@ -263,12 +263,15 @@ impl Shape for SparseMap {}
 
 impl SubMapCollection for SparseMap {
     fn add_sub_map(&mut self, local_position: Position, target: MapId) {
-        let target_area = *MAPS.read()[target].read().area();
+        let mut target_area = *MAPS.read()[target].read().area();
         let area = self.area_mut();
+        *target_area.position_mut() = *target_area.position() + local_position;
+        let right_pin = area.right();
+        let bottom_pin = area.bottom();
         *area.position_mut().x_mut() = area.position().x().min(target_area.position().x());
         *area.position_mut().y_mut() = area.position().y().min(target_area.position().y());
-        area.right_set(area.right().max(target_area.right()));
-        area.bottom_set(area.bottom().max(target_area.bottom()));
+        area.right_set(area.right().max(target_area.right()).max(right_pin));
+        area.bottom_set(area.bottom().max(target_area.bottom()).max(bottom_pin));
 
         self.sub_maps.push(SubMap::new(local_position, target))
     }
