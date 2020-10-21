@@ -219,8 +219,6 @@ impl Placed for SparseMap {}
 
 impl PlacedObject for SparseMap {}
 
-impl PlacedShape for SparseMap {}
-
 impl PortalCollection for SparseMap {
     fn add_portal(
         &mut self,
