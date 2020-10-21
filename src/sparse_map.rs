@@ -69,16 +69,18 @@ impl HasSize for SparseMap {
     }
 }
 
-impl IntersectsPosition for SparseMap {
-    fn intersects_position(&self, position: Position) -> bool {
-        self.area().intersects_position(position)
-            && match self.tile_type_at(position) {
+impl IntersectsLocalPosition for SparseMap {
+    fn intersects_local_position(&self, position: Position) -> bool {
+        self.area().intersects_local_position(position)
+            && match self.tile_type_at_local(position) {
                 Some(TileType::Void) => false,
                 None => false,
                 _ => true,
             }
     }
 }
+
+impl IntersectsPosition for SparseMap {}
 
 impl Map for SparseMap {
     fn box_clone(&self) -> Box<dyn Map> {
