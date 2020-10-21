@@ -70,11 +70,13 @@ impl HasSize for SparseMap {
 }
 
 impl IntersectsPos for SparseMap {
-    fn intersects_pos(&self, position: Position) -> bool {
-        !(position.x() < self.position().x()
-            || position.y() < self.position().y()
-            || position.x() >= self.area.right()
-            || position.y() >= self.area.bottom())
+    fn intersects_pos(&self, pos: Position) -> bool {
+        self.area().intersects_pos(pos)
+            && match self.tile_type_at(pos) {
+                Some(TileType::Void) => false,
+                None => false,
+                _ => true,
+            }
     }
 }
 
