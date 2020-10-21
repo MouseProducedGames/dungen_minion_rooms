@@ -39,6 +39,58 @@ impl SparseMap {
     }
 }
 
+impl ContainsLocalPosition for SparseMap {
+    /// ```
+    /// # use dungen_minion_rooms::geometry::*;
+    /// # use dungen_minion_rooms::*;
+    /// # let map_id = SparseMap::new();
+    ///
+    /// # let maps = MAPS.read();
+    /// # let mut sparse_map = maps[map_id].write();
+    /// for y in -1..=1 {
+    ///     for x in -1..=1 {
+    ///         let position = Position::new(2, 2) + Position::new(x, y);
+    ///         sparse_map.tile_type_at_local_set(position, TileType::Wall);
+    ///     }
+    /// }
+    ///
+    /// for y in -2..=2 {
+    ///     for x in -2..=2 {
+    ///         let position = Position::new(2, 2) + Position::new(x, y);
+    ///         let containment = sparse_map.contains_local_position(position);
+    ///         if x.abs() == 2 || y.abs() == 2 {
+    ///             assert!(containment == Containment::Disjoint);
+    ///         } else if x.abs() == 1 || y.abs() == 1 {
+    ///             assert!(containment == Containment::Intersects);
+    ///         } else {
+    ///             assert!(containment == Containment::Contains);
+    ///         }
+    ///     }
+    /// }
+    /// ```
+    fn contains_local_position(&self, position: Position) -> Containment {
+        if self.intersects_local_position(position) {
+            if self.intersects_local_position(position + Position::NORTH)
+                && self.intersects_local_position(position + Position::NORTH + Position::EAST)
+                && self.intersects_local_position(position + Position::EAST)
+                && self.intersects_local_position(position + Position::SOUTH + Position::EAST)
+                && self.intersects_local_position(position + Position::SOUTH)
+                && self.intersects_local_position(position + Position::SOUTH + Position::WEST)
+                && self.intersects_local_position(position + Position::WEST)
+                && self.intersects_local_position(position + Position::NORTH + Position::WEST)
+            {
+                Containment::Contains
+            } else {
+                Containment::Intersects
+            }
+        } else {
+            Containment::Disjoint
+        }
+    }
+}
+
+impl ContainsPosition for SparseMap {}
+
 impl HasArea for SparseMap {
     fn area(&self) -> &Area {
         &self.area
