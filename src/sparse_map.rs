@@ -333,7 +333,11 @@ impl PortalCollection for SparseMap {
     }
 }
 
-impl Shape for SparseMap {}
+impl Shape for SparseMap {
+    fn box_shape_clone(&self) -> Box<dyn Shape> {
+        Box::new((*self).clone())
+    }
+}
 
 impl SubMapCollection for SparseMap {
     fn add_sub_map(&mut self, local_position: Position, target: MapId) {
