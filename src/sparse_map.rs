@@ -4,12 +4,17 @@ use super::{
     SubMap, SubMapCollection, SubMaps, SubMapsMut, TileType, TileTypeCmp, TileTypeStandardCmp,
     MAPS,
 };
-use crate::geometry::*;
 
 // Standard includes.
 use std::collections::HashMap;
 
 // Internal includes.
+use crate::geometry::{
+    Area, CardinalDirection, CardinalRotation, Containment, ContainsLocalPosition,
+    ContainsPosition, HasArea, HasBottom, HasHeight, HasPosition, HasRight, HasSize, HasWidth,
+    IntersectsLocalPosition, IntersectsPosition, IsPosition, Length, Placed, PlacedObject,
+    Position, Shape, ShapeIterator, Size,
+};
 
 /// A map which stores its [`TileType`](enum.TileType.html) information in a `HashMap`, indexed by [`Position`](geometry/struct.Position.html).
 ///
@@ -28,6 +33,7 @@ impl SparseMap {
     ///
     /// `SparseMap::default()` defers to `SparseMap::new()`.
     #[allow(clippy::new_ret_no_self)]
+    #[must_use = "If the `MapId` is not stored, the `Map` is lost."]
     pub fn new() -> MapId {
         register_map(Self {
             map_id: get_new_map_id(),
@@ -144,11 +150,10 @@ impl HasWidth for SparseMap {
 impl IntersectsLocalPosition for SparseMap {
     fn intersects_local_position(&self, position: Position) -> bool {
         self.area().intersects_local_position(position)
-            && match self.tile_type_at_local(position) {
-                Some(TileType::Void) => false,
-                None => false,
-                _ => true,
-            }
+            && !matches!(
+                self.tile_type_at_local(position),
+                Some(TileType::Void) | None
+            )
     }
 }
 
@@ -168,28 +173,38 @@ impl Map for SparseMap {
             return;
         } */
 
+        if self.area().is_empty() {
+            return;
+        }
+
         let mut new_tiles = HashMap::<Position, TileType>::new();
 
         let self_position = *self.position();
         let new_self_position = self_position * rotation;
         let adjust_position = match rotation {
             CardinalRotation::None => Position::new(0, 0),
+            // Wrap-around is only possible with implausibly large maps.
+            #[allow(clippy::cast_possible_wrap)]
             CardinalRotation::Right90 => Position::new(0, (self.area().width() as i32 - 1).max(0)),
+            // Wrap-around is only possible with implausibly large maps.
+            #[allow(clippy::cast_possible_wrap)]
             CardinalRotation::Full180 => Position::new(
                 (self.area().width() as i32 - 1).max(0),
                 (self.area().height() as i32 - 1).max(0),
             ),
+            // Wrap-around is only possible with implausibly large maps.
+            #[allow(clippy::cast_possible_wrap)]
             CardinalRotation::Left90 => Position::new((self.area().height() as i32 - 1).max(0), 0),
         };
 
-        for portal_mut in self.portals.iter_mut() {
+        for portal_mut in &mut self.portals {
             let portal_local_position = *portal_mut.local_position() - self_position;
             let new_portal_local_position = portal_local_position * rotation;
             let new_portal_position = new_self_position + new_portal_local_position;
             *portal_mut.local_position_mut() = adjust_position + new_portal_position;
         }
 
-        for kvp in self.tiles.iter() {
+        for kvp in &self.tiles {
             let tile_local_position = *kvp.0 - self_position;
             let new_tile_local_position = tile_local_position * rotation;
             let new_tile_position = new_self_position + new_tile_local_position;
@@ -199,10 +214,10 @@ impl Map for SparseMap {
         self.tiles = new_tiles;
         *self.position_mut() = new_self_position;
         *self.size_mut() = match rotation {
-            CardinalRotation::None => *self.size(),
-            CardinalRotation::Right90 => Size::new(self.size().height(), self.size().width()),
-            CardinalRotation::Full180 => *self.size(),
-            CardinalRotation::Left90 => Size::new(self.size().height(), self.size().width()),
+            CardinalRotation::None | CardinalRotation::Full180 => *self.size(),
+            CardinalRotation::Right90 | CardinalRotation::Left90 => {
+                Size::new(self.size().height(), self.size().width())
+            }
         }
     }
 
@@ -210,7 +225,7 @@ impl Map for SparseMap {
         let mut output = None;
         if !self.sub_maps.is_empty() {
             let maps = MAPS.read();
-            for sub_map in self.sub_maps.iter() {
+            for sub_map in &self.sub_maps {
                 let map = maps[sub_map.value()].read();
                 let sub_map_position = *sub_map.local_position();
                 let local_position = pos - sub_map_position + *self.position();
@@ -219,11 +234,7 @@ impl Map for SparseMap {
             }
         }
 
-        let self_tile_type = if let Some(tile_type) = self.tiles.get(&(pos + *self.position())) {
-            Some(*tile_type)
-        } else {
-            None
-        };
+        let self_tile_type = self.tiles.get(&(pos + *self.position())).copied();
         output = *TileTypeStandardCmp::return_greater_option(&output, &self_tile_type);
 
         output
@@ -236,7 +247,7 @@ impl Map for SparseMap {
     fn tile_type_at_local_set(&mut self, pos: Position, tile_type: TileType) -> Option<TileType> {
         if !self.sub_maps.is_empty() {
             let maps = MAPS.read();
-            for sub_map in self.sub_maps.iter() {
+            for sub_map in &self.sub_maps {
                 let mut map = maps[sub_map.value()].write();
                 let sub_map_position = *sub_map.local_position();
                 let local_position = pos - sub_map_position;
@@ -246,8 +257,12 @@ impl Map for SparseMap {
             }
         }
 
-        *self.size_mut().height_mut() = self.size().height().max(pos.y() as u32 + 1);
-        *self.size_mut().width_mut() = self.size().width().max(pos.x() as u32 + 1);
+        // Since the minimum is zero, there is no sign loss to worry about.
+        #[allow(clippy::cast_sign_loss)]
+        {
+            *self.size_mut().height_mut() = self.size().height().max(pos.y() as u32 + 1);
+            *self.size_mut().width_mut() = self.size().width().max(pos.x() as u32 + 1);
+        };
 
         self.tiles.insert(pos + *self.position(), tile_type)
     }
@@ -263,27 +278,21 @@ impl Map for SparseMap {
         let mut output = None;
         if !self.sub_maps.is_empty() {
             let maps = MAPS.read();
-            for sub_map in self.sub_maps.iter() {
+            for sub_map in &self.sub_maps {
                 let map = maps[sub_map.value()].read();
                 let sub_map_position = *sub_map.local_position();
                 let local_position = pos - sub_map_position + *self.position();
                 let test = map.tile_type_at_local(local_position);
                 output = match sort_best(&output, &test) {
-                    std::cmp::Ordering::Greater => output,
-                    std::cmp::Ordering::Equal => output,
+                    std::cmp::Ordering::Greater | std::cmp::Ordering::Equal => output,
                     std::cmp::Ordering::Less => test,
                 };
             }
         }
 
-        let self_tile_type = if let Some(tile_type) = self.tiles.get(&(pos + *self.position())) {
-            Some(*tile_type)
-        } else {
-            None
-        };
+        let self_tile_type = self.tiles.get(&(pos + *self.position())).copied();
         output = match sort_best(&output, &self_tile_type) {
-            std::cmp::Ordering::Greater => output,
-            std::cmp::Ordering::Equal => output,
+            std::cmp::Ordering::Greater | std::cmp::Ordering::Equal => output,
             std::cmp::Ordering::Less => self_tile_type,
         };
 
@@ -337,6 +346,10 @@ impl Shape for SparseMap {
     fn box_shape_clone(&self) -> Box<dyn Shape> {
         Box::new((*self).clone())
     }
+
+    fn iter(&self) -> ShapeIterator {
+        ShapeIterator::new(self)
+    }
 }
 
 impl SubMapCollection for SparseMap {
@@ -351,7 +364,7 @@ impl SubMapCollection for SparseMap {
         area.right_set(area.right().max(target_area.right()).max(right_pin));
         area.bottom_set(area.bottom().max(target_area.bottom()).max(bottom_pin));
 
-        self.sub_maps.push(SubMap::new(local_position, target))
+        self.sub_maps.push(SubMap::new(local_position, target));
     }
 
     fn get_sub_map_at(&self, index: usize) -> Option<&SubMap> {

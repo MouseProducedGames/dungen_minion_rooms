@@ -1,5 +1,7 @@
 #![warn(missing_docs)]
-#![warn(missing_doc_code_examples)]
+#![warn(rustdoc::missing_doc_code_examples)]
+#![warn(clippy::all, clippy::pedantic)]
+#![cfg_attr(feature = "strict", deny(warnings))]
 
 //! Defines various map-related enums, structs, and types (traits are contained in `dungen_minion_rooms_abstract`) for the `dungen_minion` crate.
 //!
