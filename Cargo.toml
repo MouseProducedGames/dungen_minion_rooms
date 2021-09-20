@@ -1,6 +1,6 @@
 [package]
 name = "dungen_minion_rooms"
-version = "0.3.1"
+version = "0.3.2"
 authors = ["MouseProducedGames <largemouse@gmail.com>"]
 edition = "2018"
 license-file = "LICENSE"
@@ -12,7 +12,7 @@ readme = "readme.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-dungen_minion_rooms_abstract = "0.3.1"
+dungen_minion_rooms_abstract = "0.3.2"
 
 [features]
 strict = []
